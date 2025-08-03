@@ -1,0 +1,395 @@
+class SmoothScrollingManager {
+    constructor() {
+        this.currentLang = 'bg';
+        this.isDarkMode = false;
+        this.isScrolling = false;
+        this.ticking = false;
+
+        // Performance optimization flags
+        this.supportsPassive = this.checkPassiveSupport();
+        this.supportsIntersectionObserver = 'IntersectionObserver' in window;
+
+        this.init();
+    }
+
+    init() {
+        this.initializeTheme();
+        this.initializeLanguage();
+        this.initializeScrolling();
+        this.initializeAnimations();
+        this.initializeEventListeners();
+        this.initializeIntersectionObserver();
+    }
+
+    checkPassiveSupport() {
+        let supportsPassive = false;
+        try {
+            const opts = Object.defineProperty({}, 'passive', {
+                get() {
+                    supportsPassive = true;
+                    return true;
+                }
+            });
+            window.addEventListener('testPassive', null, opts);
+            window.removeEventListener('testPassive', null, opts);
+        } catch (e) { }
+        return supportsPassive;
+    }
+
+    initializeTheme() {
+        const savedTheme = sessionStorage.getItem('theme');
+        if (savedTheme) {
+            this.isDarkMode = savedTheme === 'dark';
+            document.documentElement.classList.toggle('dark', this.isDarkMode);
+        }
+    }
+
+    initializeLanguage() {
+        const savedLang = sessionStorage.getItem('language') || 'bg';
+        this.currentLang = savedLang;
+        this.updateLanguage();
+
+        // Update the language selector's flag and label
+        const flagMap = {
+            'bg': 'fi-bg',
+            'en': 'fi-gb',
+            'ro': 'fi-ro'
+        };
+        const labelMap = {
+            'bg': 'BG',
+            'en': 'EN',
+            'ro': 'RO'
+        };
+
+        const currentFlag = document.getElementById('currentFlag');
+        const currentLang = document.getElementById('currentLang');
+
+        if (currentFlag && currentLang) {
+            currentFlag.className = `fi ${flagMap[this.currentLang]}`;
+            currentLang.textContent = labelMap[this.currentLang];
+        }
+    }
+    initializeScrolling() {
+        this.setupSmoothScrolling();
+        this.setupParallaxEffect();
+        this.setupScrollIndicator();
+    }
+
+    setupSmoothScrolling() {
+        // Custom smooth scrolling for better control
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = anchor.getAttribute('href');
+                const target = document.querySelector(targetId);
+
+                if (target) {
+                    this.smoothScrollTo(target);
+                }
+            });
+        });
+    }
+
+    smoothScrollTo(target) {
+        const targetPosition = target.getBoundingClientRect().top + window.pageYOffset;
+        const startPosition = window.pageYOffset;
+        const distance = targetPosition - startPosition - 80; 
+        const duration = Math.min(Math.abs(distance) * 1.5, 1500); 
+        let start = null;
+
+        const easeInOutCubic = (t) => {
+            return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+        };
+
+        const animation = (currentTime) => {
+            if (start === null) start = currentTime;
+            const timeElapsed = currentTime - start;
+            const progress = Math.min(timeElapsed / duration, 1);
+            const ease = easeInOutCubic(progress);
+
+            window.scrollTo(0, startPosition + distance * ease);
+
+            if (timeElapsed < duration) {
+                requestAnimationFrame(animation);
+            }
+        };
+
+        requestAnimationFrame(animation);
+    }
+
+    setupParallaxEffect() {
+        const heroBackground = document.querySelector('.hero-background');
+        if (!heroBackground) return;
+
+        const parallaxHandler = () => {
+            if (!this.ticking) {
+                requestAnimationFrame(() => {
+                    const scrolled = window.pageYOffset;
+                    const rate = scrolled * -0.3; 
+
+                    if (scrolled < window.innerHeight * 1.5) {
+                        heroBackground.style.transform = `translate3d(0, ${rate}px, 0)`;
+                    }
+
+                    this.ticking = false;
+                });
+                this.ticking = true;
+            }
+        };
+
+        const options = this.supportsPassive ? { passive: true } : false;
+        window.addEventListener('scroll', parallaxHandler, options);
+    }
+
+    setupScrollIndicator() {
+        // Add scroll progress indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'scroll-indicator';
+        indicator.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            z-index: 9999;
+            transition: width 0.1s ease;
+        `;
+        document.body.appendChild(indicator);
+
+        const updateScrollIndicator = () => {
+            const scrollTop = window.pageYOffset;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercent = (scrollTop / docHeight) * 100;
+            indicator.style.width = `${Math.min(scrollPercent, 100)}%`;
+        };
+
+        const options = this.supportsPassive ? { passive: true } : false;
+        window.addEventListener('scroll', updateScrollIndicator, options);
+    }
+
+    initializeIntersectionObserver() {
+        if (!this.supportsIntersectionObserver) {
+            // Fallback for older browsers
+            this.initializeFallbackAnimations();
+            return;
+        }
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px 0px -10% 0px',
+            threshold: [0, 0.1, 0.5, 1]
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    this.animateElement(entry.target, entry.intersectionRatio);
+                }
+            });
+        }, observerOptions);
+
+        this.observeElements(observer);
+    }
+
+    observeElements(observer) {
+        // Service cards with staggered animation
+        document.querySelectorAll('.service-card').forEach((card, index) => {
+            card.classList.add('fade-in-element', `stagger-${(index % 4) + 1}`);
+            observer.observe(card);
+        });
+
+        document.querySelectorAll('.animate-on-scroll').forEach(element => {
+            observer.observe(element);
+        });
+
+        // Contact section elements
+        document.querySelectorAll('#contact .animate-fade-in, #contact .animate-slide-up').forEach(element => {
+            element.classList.add('fade-in-element');
+            observer.observe(element);
+        });
+    }
+
+    animateElement(element, ratio) {
+        if (element.classList.contains('service-card')) {
+            element.classList.add('animate', 'visible');
+        } else if (element.classList.contains('fade-in-element')) {
+            element.classList.add('visible');
+        }
+
+        // Add special effects based on intersection ratio
+        if (ratio > 0.5) {
+            element.style.opacity = '1';
+            element.style.transform = 'translateY(0)';
+        }
+    }
+
+    initializeFallbackAnimations() {
+        // Simple scroll-based animation fallback
+        const animateOnScroll = () => {
+            const elements = document.querySelectorAll('.service-card');
+            elements.forEach(element => {
+                const elementTop = element.getBoundingClientRect().top;
+                const elementVisible = 150;
+
+                if (elementTop < window.innerHeight - elementVisible) {
+                    element.classList.add('animate');
+                }
+            });
+        };
+
+        const options = this.supportsPassive ? { passive: true } : false;
+        window.addEventListener('scroll', animateOnScroll, options);
+        animateOnScroll();
+    }
+
+    initializeAnimations() {
+        // Add GPU acceleration to animated elements
+        const animatedElements = document.querySelectorAll('.service-card, .animate-float, .animate-bounce-slow');
+        animatedElements.forEach(element => {
+            element.classList.add('gpu-accelerated');
+        });
+
+        // Preload images for better performance
+        this.preloadImages();
+    }
+
+    preloadImages() {
+        const images = ['./images/truck_background.jfif'];
+        images.forEach(src => {
+            const img = new Image();
+            img.src = src;
+        });
+    }
+
+    initializeEventListeners() {
+        // Theme toggle with smooth transition
+        document.getElementById('themeToggle')?.addEventListener('click', () => {
+            this.toggleTheme();
+        });
+
+        // Language selector
+        document.getElementById('langToggle')?.addEventListener('click', () => {
+            this.toggleLanguageDropdown();
+        });
+
+        document.querySelectorAll('.lang-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                const lang = e.currentTarget.dataset.lang;
+                this.setLanguage(lang);
+                this.toggleLanguageDropdown();
+            });
+        });
+
+        document.querySelectorAll('.lang-option').forEach(option => {
+            option.addEventListener('click', (e) => {
+                const flag = e.currentTarget.getAttribute('data-flag');
+                const label = e.currentTarget.getAttribute('data-label');
+
+                // Update the flag and label in the toggle button
+                const currentFlag = document.getElementById('currentFlag');
+                const currentLang = document.getElementById('currentLang');
+
+                currentFlag.className = `fi ${flag}`;
+                currentLang.textContent = label;
+            });
+        });
+
+        // Mobile menu
+        document.getElementById('mobileMenuToggle')?.addEventListener('click', () => {
+            this.toggleMobileMenu();
+        });
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#langToggle') && !e.target.closest('#langDropdown')) {
+                document.getElementById('langDropdown')?.classList.add('hidden');
+            }
+        });
+
+        // Keyboard navigation support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('langDropdown')?.classList.add('hidden');
+                document.getElementById('mobileNav')?.classList.add('hidden');
+            }
+        });
+
+        // Window resize handler
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                this.handleResize();
+            }, 250);
+        });
+    }
+
+    handleResize() {
+        // Recalculate animations and positions on resize
+        const heroBackground = document.querySelector('.hero-background');
+        if (heroBackground) {
+            heroBackground.style.transform = 'translate3d(0, 0, 0)';
+        }
+    }
+
+    toggleTheme() {
+        this.isDarkMode = !this.isDarkMode;
+        document.documentElement.classList.toggle('dark', this.isDarkMode);
+        sessionStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light');
+
+        // Update scroll indicator color for dark mode
+        const indicator = document.querySelector('.scroll-indicator');
+        if (indicator) {
+            indicator.style.background = this.isDarkMode
+                ? 'linear-gradient(90deg, #60a5fa, #a78bfa)'
+                : 'linear-gradient(90deg, #667eea, #764ba2)';
+        }
+    }
+
+    toggleLanguageDropdown() {
+        document.getElementById('langDropdown')?.classList.toggle('hidden');
+    }
+
+    toggleMobileMenu() {
+        document.getElementById('mobileNav')?.classList.toggle('hidden');
+    }
+
+    setLanguage(lang) {
+        this.currentLang = lang;
+        sessionStorage.setItem('language', lang);
+        this.updateLanguage();
+    }
+
+    updateLanguage() {
+        const elements = document.querySelectorAll('[data-translate]');
+        elements.forEach(element => {
+            const key = element.getAttribute('data-translate');
+            if (translations[this.currentLang] && translations[this.currentLang][key]) {
+                element.textContent = translations[this.currentLang][key];
+            }
+        });
+
+        // Update document title
+        if (translations[this.currentLang]) {
+            document.title = translations[this.currentLang].page_title;
+        }
+
+        // Update language toggle button
+        const langToggle = document.getElementById('langToggle');
+        if (langToggle) {
+            const flagMap = { 'bg': '🇧🇬', 'en': '🇺🇸', 'ro': '🇷🇴' };
+            const flagIcon = langToggle.querySelector('.flag-icon');
+            const langText = langToggle.querySelector('span:nth-child(2)');
+
+            if (flagIcon) flagIcon.textContent = flagMap[this.currentLang];
+            if (langText) langText.textContent = this.currentLang.toUpperCase();
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new SmoothScrollingManager();
+});
+
+window.SmoothScrollingManager = SmoothScrollingManager;
