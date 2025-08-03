@@ -39,59 +39,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="./images/apple-touch-icon.jpg">
 
     <!-- Preload Critical Resources -->
-    <link rel="preload" href="./css/styles.css" as="style">
+    <link rel="preload" href="./css/stylesprod.css" as="style">
     <link rel="preload" href="./js/translations.js" as="script">
     <link rel="preload" href="./js/app.js" as="script">
 
-    <!-- Stylesheets - SINGLE TAILWIND CSS REFERENCE -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0f9ff',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                            900: '#1e3a8a'
-                        },
-                        success: {
-                            500: '#10b981',
-                            600: '#059669'
-                        }
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.6s ease-in-out',
-                        'slide-up': 'slideUp 0.8s ease-out',
-                        'bounce-slow': 'bounce 2s infinite',
-                        'pulse-slow': 'pulse 3s infinite',
-                        'float': 'float 3s ease-in-out infinite'
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        slideUp: {
-                            '0%': { opacity: '0', transform: 'translateY(50px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' }
-                        },
-                        float: {
-                            '0%, 100%': { transform: 'translateY(0px)' },
-                            '50%': { transform: 'translateY(-10px)' }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons/css/flag-icons.min.css">
-    <link rel="stylesheet" href="./css/styles.css">
+    <link rel="stylesheet" href="./css/stylesprod.css">
 </head>
 
 <body class="theme-transition bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
